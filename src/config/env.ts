@@ -15,8 +15,14 @@ const environmentSchema = z.object({
 
 export type Environment = z.infer<typeof environmentSchema>;
 
-export function parseEnvironment(env: Record<string, string | undefined> = process.env): Environment {
-  const result = environmentSchema.safeParse(env);
+export function parseEnvironment(rawEnv: Record<string, string | undefined> = process.env): Environment {
+  const isTestRuntime = rawEnv.NODE_ENV === "test" || Boolean(rawEnv.CI);
+  const resolvedEnv = {
+    ...rawEnv,
+    DATABASE_URL: rawEnv.DATABASE_URL || (isTestRuntime ? "postgresql://postgres:postgres@localhost:5432/test_db" : undefined),
+  };
+
+  const result = environmentSchema.safeParse(resolvedEnv);
   if (!result.success) {
     const errorDetails = result.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)

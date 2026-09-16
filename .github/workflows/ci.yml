@@ -10,6 +10,9 @@ jobs:
   validate:
     name: Typecheck, Test & Evals
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

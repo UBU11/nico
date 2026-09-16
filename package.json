@@ -7,8 +7,8 @@
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "eval": "bun test ./evals/runner.eval.ts",
+    "test": "NODE_ENV=test bun test",
+    "eval": "NODE_ENV=test bun test ./evals/runner.eval.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
