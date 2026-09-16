@@ -1,0 +1,63 @@
+name: CI Validation & Failure Ingestion
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  validate:
+    name: Typecheck, Test & Evals
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Typecheck
+        run: bun run typecheck
+
+      - name: Run Unit & Integration Tests
+        run: bun run test
+
+      - name: Run Incident Evaluation Scenarios
+        run: bun run eval
+
+      - name: Dispatch Failure Incident to Agent
+        if: failure()
+        env:
+          AGENT_WEBHOOK_URL: ${{ secrets.AGENT_WEBHOOK_URL }}
+        run: |
+          if [ -z "$AGENT_WEBHOOK_URL" ]; then
+            echo "AGENT_WEBHOOK_URL secret not configured. Skipping automated failure dispatch."
+            exit 0
+          fi
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "runId": "${{ github.run_id }}",
+            "repository": "${{ github.repository }}",
+            "sha": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "actor": "${{ github.actor }}",
+            "failedStep": "CI Test or Verification Failure",
+            "logsUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
+          EOF
+          )
+
+          curl -X POST "$AGENT_WEBHOOK_URL/webhooks/ci" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 10 \
+            --silent \
+            --show-error || true
