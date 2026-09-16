@@ -1,0 +1,96 @@
+name: Synthetic Incident Dispatcher
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Benchmark scenario fixture to trigger"
+        required: true
+        type: choice
+        options:
+          - crash-loop
+          - bad-env
+          - missing-migration
+          - custom
+        default: crash-loop
+      severity:
+        description: "Alert severity tier"
+        required: true
+        type: choice
+        options:
+          - critical
+          - warning
+          - info
+        default: critical
+      target_service:
+        description: "Target service name"
+        required: false
+        default: "order-api"
+      custom_description:
+        description: "Description if using custom scenario"
+        required: false
+        default: "Synthetic anomaly triggered via GitHub Actions workflow dispatch."
+
+jobs:
+  dispatch:
+    name: Ingest Incident Alert
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Dispatch Alert Payload
+        env:
+          AGENT_WEBHOOK_URL: ${{ secrets.AGENT_WEBHOOK_URL }}
+          SCENARIO: ${{ inputs.scenario }}
+          SEVERITY: ${{ inputs.severity }}
+          TARGET_SERVICE: ${{ inputs.target_service }}
+          CUSTOM_DESCRIPTION: ${{ inputs.custom_description }}
+        run: |
+          if [ -z "$AGENT_WEBHOOK_URL" ]; then
+            echo "AGENT_WEBHOOK_URL secret not configured. Printing payload for verification:"
+          fi
+
+          if [ "$SCENARIO" != "custom" ] && [ -f "evals/scenarios/${SCENARIO}.json" ]; then
+            FIXTURE_ALERT=$(jq -r '.alert' "evals/scenarios/${SCENARIO}.json")
+            PAYLOAD=$(jq -n \
+              --arg receiver "sre-agent-github-actions" \
+              --arg status "firing" \
+              --argjson alert "$FIXTURE_ALERT" \
+              '{receiver: $receiver, status: $status, alerts: [$alert]}')
+          else
+            PAYLOAD=$(cat <<EOF
+          {
+            "receiver": "sre-agent-github-actions",
+            "status": "firing",
+            "alerts": [
+              {
+                "status": "firing",
+                "labels": {
+                  "alertname": "SyntheticIncident",
+                  "job": "$TARGET_SERVICE",
+                  "severity": "$SEVERITY"
+                },
+                "annotations": {
+                  "summary": "Synthetic Incident Triggered for $TARGET_SERVICE",
+                  "description": "$CUSTOM_DESCRIPTION"
+                },
+                "startsAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+              }
+            ]
+          }
+          EOF
+          )
+          fi
+
+          echo "Prepared Alertmanager Payload:"
+          echo "$PAYLOAD" | jq .
+
+          if [ -n "$AGENT_WEBHOOK_URL" ]; then
+            curl -X POST "$AGENT_WEBHOOK_URL/webhooks/alert" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              --fail \
+              --show-error
+            echo "Successfully dispatched incident to agent gateway."
+          fi
