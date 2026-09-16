@@ -1,0 +1,21 @@
+{
+  "id": "scenario-bad-env-002",
+  "name": "Missing Environment Variable in payment-gateway",
+  "service": "payment-gateway",
+  "alert": {
+    "id": "scenario-bad-env-002",
+    "source": "github_actions",
+    "title": "CI Integration Tests Failed: payment-gateway",
+    "service": "payment-gateway",
+    "severity": "critical",
+    "description": "Integration test failed with error: STRIPE_API_KEY environment variable is undefined.",
+    "metadata": {
+      "workflow": "Integration",
+      "branch": "main",
+      "failedStep": "Run E2E Tests"
+    },
+    "timestamp": "2026-09-16T10:15:00Z"
+  },
+  "expectedRootCauseKeywords": ["payment-gateway", "STRIPE_API_KEY", "environment"],
+  "maxRetryAllowed": 3
+}

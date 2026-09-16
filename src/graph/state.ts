@@ -13,7 +13,10 @@ export const IncidentStateAnnotation = Annotation.Root({
   hypothesis: Annotation<string | null>(),
   patchDiff: Annotation<string | null>(),
   sandboxResult: Annotation<SandboxExecutionResult | null>(),
-  humanApproved: Annotation<boolean>(),
+  humanApproved: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false,
+  }),
   retryCount: Annotation<number>({
     reducer: (a, b) => a + b,
     default: () => 0,

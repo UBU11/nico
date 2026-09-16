@@ -1,0 +1,21 @@
+{
+  "id": "scenario-crashloop-001",
+  "name": "OOM CrashLoopBackOff in order-api",
+  "service": "order-api",
+  "alert": {
+    "id": "scenario-crashloop-001",
+    "source": "alertmanager",
+    "title": "PodCrashLoopBackOff: order-api restarting continuously",
+    "service": "order-api",
+    "severity": "critical",
+    "description": "Container terminated with exit code 137 (OOMKilled). Memory limit exceeded 512MiB threshold.",
+    "metadata": {
+      "pod": "order-api-7b89f5d6-x29q1",
+      "namespace": "production",
+      "exitCode": 137
+    },
+    "timestamp": "2026-09-16T10:00:00Z"
+  },
+  "expectedRootCauseKeywords": ["order-api", "PodCrashLoopBackOff", "memory"],
+  "maxRetryAllowed": 3
+}

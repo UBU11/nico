@@ -1,0 +1,20 @@
+{
+  "id": "scenario-migration-003",
+  "name": "Missing Postgres Migration in user-service",
+  "service": "user-service",
+  "alert": {
+    "id": "scenario-migration-003",
+    "source": "alertmanager",
+    "title": "PostgresError: relation users does not exist",
+    "service": "user-service",
+    "severity": "critical",
+    "description": "Database query error: relation users does not exist in schema public. Missing unapplied migration 0003_add_users.",
+    "metadata": {
+      "db": "production-db",
+      "errorCode": "42P01"
+    },
+    "timestamp": "2026-09-16T10:30:00Z"
+  },
+  "expectedRootCauseKeywords": ["user-service", "migration", "relation"],
+  "maxRetryAllowed": 3
+}
